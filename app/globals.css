@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-achieved: #22c55e;
+  --color-missed: #ef4444;
+  --color-no-data: #374151;
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-border: #334155;
+  --color-text: #f1f5f9;
+  --color-muted: #94a3b8;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Status dot */
+.status-dot {
+  @apply inline-block w-2.5 h-2.5 rounded-full flex-shrink-0;
+}
+.status-achieved { background-color: var(--color-achieved); }
+.status-missed   { background-color: var(--color-missed); }
+.status-no-data  { background-color: #374151; }
+
+/* Habit cell pill */
+.cell-achieved { @apply bg-green-500/20 text-green-400 border border-green-500/30; }
+.cell-missed   { @apply bg-red-500/20 text-red-400 border border-red-500/30; }
+.cell-no-data  { @apply bg-gray-800/60 text-gray-500 border border-gray-700/50; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
