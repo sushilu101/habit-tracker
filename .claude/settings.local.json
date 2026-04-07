@@ -7,7 +7,10 @@
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(echo \"EXIT: $?\")",
       "Bash(./node_modules/.bin/next build:*)",
-      "Bash(echo \"BUILD EXIT: $?\")"
+      "Bash(echo \"BUILD EXIT: $?\")",
+      "Bash(npm info:*)",
+      "Bash(node -e \"const v=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\(v.filter\\(x=>x.startsWith\\('15.'\\)\\).slice\\(-5\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(tasklist)"
     ]
   }
 }
