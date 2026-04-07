@@ -17,6 +17,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/?strava_error=no_code', request.url))
   }
 
+  // Base URL for redirects: prefer APP_URL env var over request.url so it
+  // works correctly behind Vercel's edge network.
+  const appBase = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin
+
   try {
     const tokens = await exchangeCodeForTokens(code)
     const db = createServerClient()
@@ -32,11 +36,14 @@ export async function GET(request: NextRequest) {
       { onConflict: 'athlete_id' }
     )
 
-    return NextResponse.redirect(new URL('/?strava_connected=true', request.url))
+    return NextResponse.redirect(new URL('/?strava_connected=true', appBase))
   } catch (err) {
-    console.error('Strava callback error:', err)
-    return NextResponse.redirect(
-      new URL('/?strava_error=token_exchange_failed', request.url)
-    )
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('Strava callback error:', msg)
+    // Surface a sanitised version of the error so it's visible in the UI
+    const code = msg.includes('401') ? 'unauthorized'
+      : msg.includes('400') ? 'bad_request'
+      : 'token_exchange_failed'
+    return NextResponse.redirect(new URL(`/?strava_error=${code}`, appBase))
   }
 }

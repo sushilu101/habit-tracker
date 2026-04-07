@@ -4,10 +4,22 @@ import type { StravaActivity } from './types'
 const STRAVA_API_BASE = 'https://www.strava.com/api/v3'
 const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token'
 
+// Single source of truth for the redirect URI used in both the authorization
+// request and the token exchange. Strava requires them to match exactly.
+// Supports STRAVA_REDIRECT_URI (preferred, server-only) or
+// NEXT_PUBLIC_STRAVA_REDIRECT_URI (legacy), falling back to APP_URL.
+function getRedirectUri(): string {
+  return (
+    process.env.STRAVA_REDIRECT_URI ??
+    process.env.NEXT_PUBLIC_STRAVA_REDIRECT_URI ??
+    `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/strava/callback`
+  )
+}
+
 export function getStravaAuthUrl(): string {
   const params = new URLSearchParams({
     client_id: process.env.STRAVA_CLIENT_ID!,
-    redirect_uri: process.env.NEXT_PUBLIC_STRAVA_REDIRECT_URI!,
+    redirect_uri: getRedirectUri(),
     response_type: 'code',
     approval_prompt: 'auto',
     scope: 'read,activity:read_all',
@@ -24,9 +36,14 @@ export async function exchangeCodeForTokens(code: string) {
       client_secret: process.env.STRAVA_CLIENT_SECRET,
       code,
       grant_type: 'authorization_code',
+      // Must be included and must exactly match the URI used in the auth request
+      redirect_uri: getRedirectUri(),
     }),
   })
-  if (!res.ok) throw new Error(`Strava token exchange failed: ${await res.text()}`)
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Strava token exchange failed (${res.status}): ${body}`)
+  }
   return res.json()
 }
 
