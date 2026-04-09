@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseSMSReply, generateSMSAck } from '@/lib/claude'
-import { sendSMS } from '@/lib/twilio'
+import { sendSMS, sendWhatsApp } from '@/lib/twilio'
 import { getOrCreateEntry, updateEntry, getTodayPT } from '@/lib/habits'
 import { createServerClient } from '@/lib/supabase'
 
@@ -16,10 +16,13 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  // Only accept messages from the configured phone number
+  // Only accept messages from the configured phone number.
+  // Twilio prefixes WhatsApp numbers with "whatsapp:" so strip it before comparing.
   const myPhone = process.env.MY_PHONE_NUMBER
-  if (myPhone && from !== myPhone) {
-    console.warn(`Ignoring SMS from unknown number: ${from}`)
+  const fromNormalized = from.replace(/^whatsapp:/, '')
+  const isWhatsApp = from.startsWith('whatsapp:')
+  if (myPhone && fromNormalized !== myPhone) {
+    console.warn(`Ignoring message from unknown number: ${from}`)
     return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
       headers: { 'Content-Type': 'text/xml' },
     })
@@ -69,22 +72,31 @@ export async function POST(request: NextRequest) {
     // Update the entry
     await updateEntry(date, updates as Partial<typeof entry>)
 
-    // Generate and send acknowledgment
+    // Generate and send acknowledgment via the same channel the reply came in on
     const ackMessage = await generateSMSAck(parsed, date)
-    await sendSMS(ackMessage)
+    if (isWhatsApp) {
+      await sendWhatsApp(ackMessage)
+    } else {
+      await sendSMS(ackMessage)
+    }
 
-    // Log outbound SMS
+    // Log outbound message
     await db.from('sms_log').insert({
       direction: 'outbound',
       body: ackMessage,
-      from_number: process.env.TWILIO_PHONE_NUMBER,
+      from_number: isWhatsApp ? 'whatsapp:+14155238886' : process.env.TWILIO_PHONE_NUMBER,
       to_number: from,
       related_date: date,
       parsed_data: parsed,
     })
   } catch (err) {
     console.error('SMS webhook error:', err)
-    await sendSMS('Sorry, there was an error processing your message. Please try again.')
+    const errMsg = 'Sorry, there was an error processing your message. Please try again.'
+    if (isWhatsApp) {
+      await sendWhatsApp(errMsg).catch(() => {})
+    } else {
+      await sendSMS(errMsg).catch(() => {})
+    }
   }
 
   // Twilio expects TwiML response (empty = no auto-reply)
