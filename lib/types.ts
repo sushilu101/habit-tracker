@@ -18,6 +18,7 @@ export interface WeekData {
   weekStart: Date // Monday of the week
   weekEnd: Date   // Sunday of the week
   days: (HabitEntry | null)[] // Mon-Sun, null if no entry
+  dayDates: string[] // YYYY-MM-DD for each day Mon-Sun, computed in PT on the server
   weeklyTotals: WeeklyTotals
 }
 

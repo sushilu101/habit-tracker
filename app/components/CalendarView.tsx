@@ -1,12 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { format, parseISO, isSameDay } from 'date-fns'
+import { format, isSameDay } from 'date-fns'
 import type { WeekData } from '@/lib/types'
 import HabitCell from './HabitCell'
 import EditEntryModal from './EditEntryModal'
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+// Parse a YYYY-MM-DD string as local midnight so PT browser gets the right date,
+// avoiding the UTC-to-local shift that new Date('YYYY-MM-DD') causes.
+function parseLocalDate(s: string): Date {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
 
 interface CalendarViewProps {
   weeks: WeekData[]
@@ -88,10 +95,10 @@ export default function CalendarView({ weeks, onEntryUpdated }: CalendarViewProp
 
       <div className="space-y-6">
         {[...weeks].reverse().map((week) => {
-          const weekLabel = format(week.weekStart, 'MMM d') + ' – ' + format(week.weekEnd, 'MMM d, yyyy')
+          const weekLabel = format(parseLocalDate(week.dayDates[0]), 'MMM d') + ' – ' + format(parseLocalDate(week.dayDates[6]), 'MMM d, yyyy')
 
           return (
-            <div key={format(week.weekStart, 'yyyy-MM-dd')} className="rounded-xl border border-slate-700/60 overflow-hidden">
+            <div key={week.dayDates[0]} className="rounded-xl border border-slate-700/60 overflow-hidden">
               {/* Week header */}
               <div className="flex items-center justify-between px-4 py-2 bg-slate-800/80 border-b border-slate-700/60">
                 <span className="text-sm font-semibold text-slate-200">{weekLabel}</span>
@@ -120,9 +127,9 @@ export default function CalendarView({ weeks, onEntryUpdated }: CalendarViewProp
                     <tr>
                       <td className="px-3 py-3 text-xs text-slate-500 align-top font-medium">Habits</td>
                       {week.days.map((entry, dayIdx) => {
-                        const dayDate = new Date(week.weekStart)
-                        dayDate.setDate(dayDate.getDate() + dayIdx)
-                        const dateStr = format(dayDate, 'yyyy-MM-dd')
+                        const dateStr = week.dayDates[dayIdx]
+                        // Parse as local midnight so PT browser gives the correct date
+                        const dayDate = parseLocalDate(dateStr)
                         const isToday = isSameDay(dayDate, today)
                         const isFuture = dayDate > today
 

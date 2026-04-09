@@ -7,10 +7,15 @@ import { toZonedTime } from 'date-fns-tz'
 
 const PT_TZ = 'America/Los_Angeles'
 
-// Called by Vercel Cron every Sunday at 9pm PT = 5am UTC Monday
+// Called by Vercel Cron every Sunday at 9pm PT = 4am UTC Monday (PDT/UTC-7)
 export async function GET(request: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    console.error('CRON_SECRET env var is not set — cron authentication will always fail')
+    return NextResponse.json({ error: 'Server misconfigured: CRON_SECRET not set' }, { status: 500 })
+  }
   const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -91,12 +91,14 @@ export function buildWeekDataUtil(entries: HabitEntry[], weekStart: Date): WeekD
   const weekEnd = getWeekEndUtil(weekStart)
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const entryMap = new Map(entries.map(e => [e.date, e]))
-  const dayEntries = days.map(day => entryMap.get(format(day, 'yyyy-MM-dd')) ?? null)
+  const dayDates = days.map(day => format(day, 'yyyy-MM-dd'))
+  const dayEntries = dayDates.map(dateStr => entryMap.get(dateStr) ?? null)
 
   return {
     weekStart,
     weekEnd,
     days: dayEntries,
+    dayDates,
     weeklyTotals: calcWeeklyTotals(dayEntries),
   }
 }

@@ -5,21 +5,23 @@ let _client: ReturnType<typeof twilio> | null = null
 
 function getClient() {
   if (!_client) {
-    _client = twilio(
-      process.env.TWILIO_ACCOUNT_SID!,
-      process.env.TWILIO_AUTH_TOKEN!
-    )
+    const sid = process.env.TWILIO_ACCOUNT_SID
+    const token = process.env.TWILIO_AUTH_TOKEN
+    if (!sid || !token) {
+      throw new Error('Missing required env vars: TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set')
+    }
+    _client = twilio(sid, token)
   }
   return _client
 }
 
 export async function sendSMS(body: string, to?: string): Promise<void> {
+  const from = process.env.TWILIO_PHONE_NUMBER
+  const toNumber = to ?? process.env.MY_PHONE_NUMBER
+  if (!from) throw new Error('Missing required env var: TWILIO_PHONE_NUMBER must be set')
+  if (!toNumber) throw new Error('Missing required env var: MY_PHONE_NUMBER must be set')
   const client = getClient()
-  await client.messages.create({
-    body,
-    from: process.env.TWILIO_PHONE_NUMBER!,
-    to: to ?? process.env.MY_PHONE_NUMBER!,
-  })
+  await client.messages.create({ body, from, to: toNumber })
 }
 
 // Validate that a request came from Twilio

@@ -98,10 +98,8 @@ export function buildWeekData(entries: HabitEntry[], weekStart: Date): WeekData 
 
   const entryMap = new Map(entries.map(e => [e.date, e]))
 
-  const dayEntries = days.map(day => {
-    const dateStr = format(day, 'yyyy-MM-dd')
-    return entryMap.get(dateStr) ?? null
-  })
+  const dayDates = days.map(day => format(day, 'yyyy-MM-dd'))
+  const dayEntries = dayDates.map(dateStr => entryMap.get(dateStr) ?? null)
 
   const weeklyTotals = calcWeeklyTotals(dayEntries)
 
@@ -109,6 +107,7 @@ export function buildWeekData(entries: HabitEntry[], weekStart: Date): WeekData 
     weekStart,
     weekEnd,
     days: dayEntries,
+    dayDates,
     weeklyTotals,
   }
 }
