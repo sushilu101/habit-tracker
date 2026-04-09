@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendSMS, buildDailySummaryMessage } from '@/lib/twilio'
-import { getOrCreateEntry, getWeeklyMeals, getTodayPT } from '@/lib/habits'
+import { getOrCreateEntry, getTodayPT } from '@/lib/habits'
 import { syncStravaActivities } from '@/lib/strava'
 
 // Called by Vercel Cron at 10pm PT = 5am UTC (PDT/UTC-7) or 6am UTC (PST/UTC-8)
@@ -24,15 +24,13 @@ export async function GET(request: NextRequest) {
 
     const date = getTodayPT()
     const entry = await getOrCreateEntry(date)
-    const weeklyMeals = await getWeeklyMeals(date)
 
     const message = buildDailySummaryMessage({
       date,
       equivalentMiles: entry.equivalent_miles,
       wakeupTime: entry.wakeup_time,
-      weeklyUnhealthyMeals: weeklyMeals,
+      todayUnhealthyMeals: entry.unhealthy_meals,
       flossed: entry.flossed,
-      stravaConfirmed: entry.sms_confirmed,
     })
 
     await sendSMS(message)

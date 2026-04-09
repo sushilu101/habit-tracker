@@ -47,32 +47,31 @@ export function formatWakeupTime(time: string | null): string {
   return `${displayHour}:${String(minute).padStart(2, '0')}${period}`
 }
 
+// Format YYYY-MM-DD as M/D/YY
+function formatDateMDYY(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return `${month}/${day}/${String(year).slice(2)}`
+}
+
 // Build daily summary message
 export function buildDailySummaryMessage(data: {
   date: string
   equivalentMiles: number | null
   wakeupTime: string | null
-  weeklyUnhealthyMeals: number | null
+  todayUnhealthyMeals: number | null
   flossed: boolean | null
-  stravaConfirmed: boolean
 }): string {
-  const miles =
-    data.equivalentMiles !== null
-      ? `${data.equivalentMiles.toFixed(1)} equiv. miles${data.stravaConfirmed ? '' : ' (from Strava — correct?)'}`
-      : 'no activity logged'
-
-  const wakeup = data.wakeupTime ? formatWakeupTime(data.wakeupTime) : 'unknown'
-  const meals = data.weeklyUnhealthyMeals !== null ? `${data.weeklyUnhealthyMeals} so far` : 'TBD'
-  const flossed = data.flossed === null ? 'TBD' : data.flossed ? 'yes' : 'no'
+  const miles = data.equivalentMiles !== null ? data.equivalentMiles.toFixed(1) : '—'
+  const wakeup = data.wakeupTime ? formatWakeupTime(data.wakeupTime) : 'TBD'
+  const meals = data.todayUnhealthyMeals !== null ? String(data.todayUnhealthyMeals) : 'TBD'
+  const flossed = data.flossed === null ? 'TBD' : data.flossed ? 'Yes' : 'No'
 
   return [
-    `Hi! Daily habit check-in for ${data.date}:`,
-    `🏃 Equiv miles: ${miles}`,
-    `⏰ Wakeup: ${wakeup}`,
-    `🍔 Unhealthy meals this week: ${meals}`,
-    `🦷 Flossed tonight: ${flossed}`,
-    '',
-    'Reply with any corrections or missing info, e.g. "woke up at 6:20, no unhealthy meals, yes flossed"',
+    `Daily habit check-in for ${formatDateMDYY(data.date)}`,
+    `Miles: ${miles}`,
+    `Wakeup: ${wakeup}`,
+    `Unhealthy meals: ${meals}`,
+    `Flossed: ${flossed}`,
   ].join('\n')
 }
 
