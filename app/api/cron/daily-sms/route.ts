@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sendSMS, buildDailySummaryMessage } from '@/lib/twilio'
+import { sendWhatsApp, buildDailySummaryMessage } from '@/lib/twilio'
 import { getOrCreateEntry, getTodayPT } from '@/lib/habits'
 import { syncStravaActivities } from '@/lib/strava'
 
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       flossed: entry.flossed,
     })
 
-    await sendSMS(message)
+    await sendWhatsApp(message)
 
     return NextResponse.json({ success: true, date, message })
   } catch (err) {

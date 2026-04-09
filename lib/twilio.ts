@@ -24,6 +24,17 @@ export async function sendSMS(body: string, to?: string): Promise<void> {
   await client.messages.create({ body, from, to: toNumber })
 }
 
+export async function sendWhatsApp(body: string, to?: string): Promise<void> {
+  const toNumber = to ?? process.env.MY_PHONE_NUMBER
+  if (!toNumber) throw new Error('Missing required env var: MY_PHONE_NUMBER must be set')
+  const client = getClient()
+  await client.messages.create({
+    body,
+    from: 'whatsapp:+14155238886', // Twilio WhatsApp sandbox number
+    to: `whatsapp:${toNumber}`,
+  })
+}
+
 // Validate that a request came from Twilio
 export function validateTwilioSignature(
   signature: string,
