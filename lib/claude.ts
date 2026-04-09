@@ -15,28 +15,38 @@ export async function parseSMSReply(
     flossed: boolean | null
   }
 ): Promise<ParsedSMSData> {
-  const prompt = `You are parsing a user's SMS reply to a habit tracking check-in for ${contextDate}.
+  const prompt = `You are a habit tracking assistant parsing a WhatsApp reply for ${contextDate}.
 
-Current tracked data for today:
-- Equivalent miles: ${currentData.equivalent_miles ?? 'not set'}
-- Wakeup time: ${currentData.wakeup_time ?? 'not set'}
-- Unhealthy meals (today's addition): ${currentData.unhealthy_meals ?? 'not set'}
-- Flossed tonight: ${currentData.flossed ?? 'not set'}
+Current values for today:
+- equivalent_miles: ${currentData.equivalent_miles ?? 'not set'}
+- wakeup_time: ${currentData.wakeup_time ?? 'not set'}
+- unhealthy_meals: ${currentData.unhealthy_meals ?? 'not set'}
+- flossed: ${currentData.flossed ?? 'not set'}
 
-The user replied: "${userMessage}"
+User message: "${userMessage}"
 
-Extract any habit data mentioned. Return a JSON object with only the fields the user mentioned/updated:
-- wakeup_time: string in "HH:MM" 24-hour format (e.g. "06:20" for 6:20am, "06:35" for 6:35am), or null if not mentioned
-- unhealthy_meals: integer (number of unhealthy meals mentioned for today), or null if not mentioned
-- flossed: boolean (true/false), or null if not mentioned
-- equivalent_miles: number (override for today's equivalent miles), or null if not mentioned
-- notes: any additional text the user wanted to add
+Extract ONLY the fields the user is updating. OMIT fields they did not mention — do not include them at all, do not set them to null.
 
-For wakeup time, convert naturally: "6:20" → "06:20", "620" → "06:20", "6:20am" → "06:20", "6:20 am" → "06:20"
-For flossed: "yes", "yeah", "yep", "did floss" → true; "no", "nope", "didn't" → false
-For meals: "1 unhealthy meal", "had pizza" → 1; "no bad meals", "0 unhealthy" → 0
+Fields and how to parse them:
+- equivalent_miles: number — any mention of miles, running, or biking. "miles 7", "7 miles", "change miles to 7.0", "ran 5", "7.0 miles", "set miles to 3" all map here.
+- wakeup_time: "HH:MM" 24-hour string — any mention of waking up. "woke up at 6:20" → "06:20", "620" → "06:20", "6:20am" → "06:20", "up at 6" → "06:00".
+- unhealthy_meals: integer — unhealthy/bad meals today. "1 unhealthy meal" → 1, "had pizza" → 1, "no bad meals" → 0, "0 unhealthy" → 0.
+- flossed: boolean — "yes flossed", "flossed", "yeah", "yep" → true; "no", "didn't floss", "nope" → false.
+- notes: string — anything else worth recording.
 
-Return ONLY valid JSON, no markdown, no explanation.`
+Examples (return ONLY the JSON object, nothing else):
+"change miles to 7.0"        → {"equivalent_miles": 7.0}
+"miles 7"                    → {"equivalent_miles": 7.0}
+"7 miles"                    → {"equivalent_miles": 7.0}
+"woke up at 6:20"            → {"wakeup_time": "06:20"}
+"1 unhealthy meal"           → {"unhealthy_meals": 1}
+"no unhealthy meals"         → {"unhealthy_meals": 0}
+"yes flossed"                → {"flossed": true}
+"didn't floss"               → {"flossed": false}
+"woke 630, 1 bad meal"       → {"wakeup_time": "06:30", "unhealthy_meals": 1}
+"miles 5 woke at 6 flossed"  → {"equivalent_miles": 5.0, "wakeup_time": "06:00", "flossed": true}
+
+Return ONLY a valid JSON object. No markdown fences, no explanation.`
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -48,10 +58,11 @@ Return ONLY valid JSON, no markdown, no explanation.`
   if (content.type !== 'text') throw new Error('Unexpected response type from Claude')
 
   try {
-    const parsed = JSON.parse(content.text.trim())
+    // Strip markdown code fences if Claude included them despite instructions
+    const text = content.text.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')
+    const parsed = JSON.parse(text)
     return parsed as ParsedSMSData
   } catch {
-    // If parsing fails, return empty object (no updates)
     console.error('Failed to parse Claude response:', content.text)
     return {}
   }
